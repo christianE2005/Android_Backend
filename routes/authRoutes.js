@@ -1,7 +1,7 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import admin from "firebase-admin";
-import { User } from "./models/User.js";
+import { User } from "../models/User.js";
 
 const router = express.Router();
 
@@ -49,7 +49,7 @@ router.post("/login", async (req, res) => {
         isAdmin: user.is_admin
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1m" }
     );
 
     // 4. Return to client

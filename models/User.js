@@ -1,5 +1,5 @@
 import { DataTypes } from "sequelize";
-import { sequelize } from "../db.js";
+import { sequelize } from "../database/db.js";
 
 export const User = sequelize.define(
   "User",
@@ -26,6 +26,6 @@ export const User = sequelize.define(
     schema: "public",
     timestamps: true,             // adds createdAt, updatedAt
     createdAt: "created_at",
-    updatedAt: false
+    updatedAt: "updated_at"
   }
 );
