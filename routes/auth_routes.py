@@ -274,3 +274,24 @@ async def firebase_login(request: FirebaseLoginRequest, db: Session = Depends(ge
             status_code=401,
             detail="Invalid Firebase token"
         )
+
+
+@router.get("/users")
+async def get_all_users(db: Session = Depends(get_db)):
+    """
+    Get all users endpoint - returns list of all users in database
+    """
+    try:
+        usuarios = db.query(Usuario).all()
+        
+        return {
+            "total": len(usuarios),
+            "usuarios": [usuario.to_dict() for usuario in usuarios]
+        }
+        
+    except Exception as e:
+        print(f"Get users error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Error al obtener usuarios"
+        )
