@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, DateTime
+from sqlalchemy import Column, String, Integer, DateTime, Boolean, Text
 from database.db import Base
 from fastapi import HTTPException
 import re
@@ -29,13 +29,34 @@ class Usuario(Base):
         nullable=False
     )
     nombre = Column(
-        String(255),
+        String(150),
         nullable=False
     )
     creado_en = Column(
         DateTime,
         nullable=False,
         default=datetime.utcnow
+    )
+    es_admin = Column(
+        Boolean,
+        default=False
+    )
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
+    )
+    monedas = Column(
+        Integer,
+        default=0
+    )
+    bio = Column(
+        Text,
+        nullable=True
+    )
+    avatar_id = Column(
+        Integer,
+        nullable=True
     )
 
     def to_dict(self):
@@ -44,5 +65,10 @@ class Usuario(Base):
             "id_usuario": self.id_usuario,
             "correo": self.correo,
             "nombre": self.nombre,
-            "creado_en": self.creado_en.isoformat() if self.creado_en else None
+            "creado_en": self.creado_en.isoformat() if self.creado_en else None,
+            "es_admin": bool(self.es_admin) if self.es_admin is not None else False,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "monedas": self.monedas or 0,
+            "bio": self.bio,
+            "avatar_id": self.avatar_id
         }

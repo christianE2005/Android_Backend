@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 
 from database.db import connect_and_sync
 from routes.auth_routes import router as auth_router
+from routes.home_routes import router as home_router
+from routes.modulos_routes import router as modulos_router
 from middleware.auth_middleware import require_auth
 
 # Load environment variables
@@ -54,6 +56,12 @@ async def health_check():
 
 # Auth routes
 app.include_router(auth_router, prefix="/auth", tags=["Authentication"])
+
+# Home routes
+app.include_router(home_router, prefix="/api", tags=["Home"])
+
+# Modulos routes
+app.include_router(modulos_router, prefix="/api/modulos", tags=["Modulos"])
 
 # Protected example endpoint
 @app.get("/me")
