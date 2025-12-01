@@ -8,6 +8,11 @@ from database.db import connect_and_sync
 from routes.auth_routes import router as auth_router
 from routes.home_routes import router as home_router
 from routes.modulos_routes import router as modulos_router
+from routes.profile_routes import router as profile_router
+from routes.lecciones_routes import router as lecciones_router
+from routes.dictionary_routes import router as dictionary_router
+from routes.missions_routes import router as missions_router
+from routes.avatars_routes import router as avatars_router
 from middleware.auth_middleware import require_auth
 
 # Load environment variables
@@ -63,6 +68,21 @@ app.include_router(home_router, prefix="/api", tags=["Home"])
 # Modulos routes
 app.include_router(modulos_router, prefix="/api/modulos", tags=["Modulos"])
 
+# Profile routes
+app.include_router(profile_router, prefix="/profile", tags=["Profile"])
+
+# Lecciones routes
+app.include_router(lecciones_router, prefix="/lessons", tags=["Lessons"])
+
+# Dictionary routes
+app.include_router(dictionary_router, prefix="/dictionary", tags=["Dictionary"])
+
+# Missions routes
+app.include_router(missions_router, prefix="/missions", tags=["Missions"])
+
+# Avatars routes
+app.include_router(avatars_router, prefix="/avatars", tags=["Avatars"])
+
 # Protected example endpoint
 @app.get("/me")
 async def get_me(user: dict = Depends(require_auth)):
@@ -73,7 +93,6 @@ async def get_me(user: dict = Depends(require_auth)):
     }
 
 
-# Run the application
 if __name__ == "__main__":
     import uvicorn
     
@@ -82,5 +101,5 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=port,
-        reload=True  # Enable auto-reload for development
+        reload=True 
     )

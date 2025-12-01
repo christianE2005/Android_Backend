@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from sqlalchemy import Column, String, Integer, DateTime, Boolean, Text
+from sqlalchemy import Column, String, Integer, DateTime, Boolean
 from database.db import Base
 from fastapi import HTTPException
 import re
@@ -50,14 +50,6 @@ class Usuario(Base):
         Integer,
         default=0
     )
-    bio = Column(
-        Text,
-        nullable=True
-    )
-    avatar_id = Column(
-        Integer,
-        nullable=True
-    )
 
     def to_dict(self):
         """Convert usuario to dictionary"""
@@ -68,7 +60,5 @@ class Usuario(Base):
             "creado_en": self.creado_en.isoformat() if self.creado_en else None,
             "es_admin": bool(self.es_admin) if self.es_admin is not None else False,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "monedas": self.monedas or 0,
-            "bio": self.bio,
-            "avatar_id": self.avatar_id
+            "monedas": self.monedas or 0
         }
