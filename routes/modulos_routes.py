@@ -71,7 +71,7 @@ async def get_modulos(
         ).first()
         
         # Calculate current progress (progreso_pct is 0-100, we convert to 0-50 scale)
-        current = int(float(usuario_modulo.progreso_pct or 0) / 100 * 50) if usuario_modulo else 0
+        current = int(float(usuario_modulo.progreso_pct or 0) / 100) if usuario_modulo else 0
         
         modulos_response.append(ModuleInfo(
             name=modulo.titulo,
