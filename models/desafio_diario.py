@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, DateTime
+from sqlalchemy import Column, Integer, DateTime, String
 from datetime import datetime
 from database.db import Base
 
@@ -11,6 +11,7 @@ class DesafioDiario(Base):
     modulos_completados = Column(Integer, default=0)
     xp_ganado = Column(Integer, default=0)
     actualizado_en = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    nombre_desafio = Column(String, nullable=False)
     
     def to_dict(self):
         return {
@@ -18,5 +19,6 @@ class DesafioDiario(Base):
             "lecciones_completadas": self.lecciones_completadas,
             "modulos_completados": self.modulos_completados,
             "xp_ganado": self.xp_ganado,
-            "actualizado_en": self.actualizado_en.isoformat() if self.actualizado_en else None
+            "actualizado_en": self.actualizado_en.isoformat() if self.actualizado_en else None,
+            "nombre_desafio": self.nombre_desafio
         }

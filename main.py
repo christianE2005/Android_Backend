@@ -92,7 +92,6 @@ async def get_me(user: dict = Depends(require_auth)):
         "nombre": user["nombre"]
     }
 
-
 if __name__ == "__main__":
     import uvicorn
     

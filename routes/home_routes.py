@@ -3,8 +3,6 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta
-import firebase_admin
-from firebase_admin import credentials, auth
 
 from database.db import get_db
 from models.user import Usuario
@@ -19,9 +17,7 @@ router = APIRouter()
 class HomeResponse(BaseModel):
     Usuario: dict
     Dias: dict
-    Mision1: int
-    Mision2: int
-    Mision3: int
+    Misiones: int
     Progreso: float
     Racha: int
     ProgresoModulo1: int
@@ -42,66 +38,38 @@ async def get_home_data(
             status_code=404,
             detail="Usuario no encontrado"
         )
+    
+    # Build days dict (placeholder - could be expanded with actual tracking)
     hoy = datetime.now().date()
     dias_semana = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"]
-    dias_dict = {}
-
-    dia_actual = hoy.weekday()
-
-    inicio_semana = hoy -  timedelta(days=dia_actual)
-
-    desafios_semana = db.query(DesafioDiario).filter(
-        DesafioDiario.id_usuario == user_id,
-        DesafioDiario.fecha_dia >= inicio_semana,
-        DesafioDiario.fecha_dia <= hoy
-    ).all()
+    dias_dict = {dia: False for dia in dias_semana}
     
-    desafios_completados = {d.fecha_dia: d.completado for d in desafios_semana}
-    
-    for i, dia_nombre in enumerate(dias_semana):
-        fecha_dia = inicio_semana + timedelta(days=i)
-        if fecha_dia <= hoy:
-            dias_dict[dia_nombre] = bool(desafios_completados.get(fecha_dia, False))
-        else:
-            dias_dict[dia_nombre] = False
-    
-    desafio_hoy = db.query(DesafioDiario).filter(
-        DesafioDiario.id_usuario == user_id,
-        DesafioDiario.fecha_dia == hoy
+    # Get desafio for this user (using id_desafio as user reference)
+    desafio = db.query(DesafioDiario).filter(
+        DesafioDiario.id_desafio == user_id
     ).first()
     
-    if desafio_hoy:
-        misiones = desafio_hoy.lecciones_completadas
-        
+    if desafio:
+        misiones = desafio.lecciones_completadas or 0
     else:
-        desafio_hoy = DesafioDiario(
-            id_usuario=user_id,
-            fecha_dia=hoy,
+        # Create desafio for user if not exists
+        desafio = DesafioDiario(
+            id_desafio=user_id,
             lecciones_completadas=0,
             modulos_completados=0,
             xp_ganado=0,
-            completado=False
+            nombre_desafio="Desafio diario"
         )
-        db.add(desafio_hoy)
+        db.add(desafio)
         db.commit()
         misiones = 0
     
-    # 4. Calculate current streak (racha)
+    # Calculate racha (streak) - simplified version
     racha = 0
-    fecha_check = hoy
-    while True:
-        desafio = db.query(DesafioDiario).filter(
-            DesafioDiario.id_usuario == user_id,
-            DesafioDiario.fecha_dia == fecha_check
-        ).first()
-        
-        if desafio and desafio.completado:
-            racha += 1
-            fecha_check -= timedelta(days=1)
-        else:
-            break
+    if desafio and desafio.lecciones_completadas and desafio.lecciones_completadas > 0:
+        racha = 1  # At least 1 day if has progress
     
-    # 5. Calculate overall progress (average of all modules)
+    # Calculate overall progress (average of all modules)
     progreso_modulos = db.query(UsuarioModulo).filter(
         UsuarioModulo.id_usuario == user_id
     ).all()
@@ -111,7 +79,7 @@ async def get_home_data(
     else:
         progreso_total = 0.0
     
-    # 6. Get progress for each of the 3 modules specifically
+    # Get progress for each of the 3 modules specifically
     modulo1 = db.query(UsuarioModulo).filter(
         UsuarioModulo.id_usuario == user_id,
         UsuarioModulo.id_modulo == 1
@@ -131,7 +99,7 @@ async def get_home_data(
     progreso_modulo2 = int(float(modulo2.progreso_pct or 0)) if modulo2 else 0
     progreso_modulo3 = int(float(modulo3.progreso_pct or 0)) if modulo3 else 0
     
-    # 7. Build response
+    # Build response
     home_data = {
         "Usuario": user.to_dict(),
         "Dias": dias_dict,
