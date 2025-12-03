@@ -23,6 +23,7 @@ class HomeResponse(BaseModel):
     ProgresoModulo1: int
     ProgresoModulo2: int
     ProgresoModulo3: int
+    Total: int
 
 @router.get("/home", response_model=HomeResponse)
 async def get_home_data(
