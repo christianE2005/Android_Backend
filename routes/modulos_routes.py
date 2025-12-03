@@ -250,15 +250,15 @@ async def delete_modulo(
     db: Session = Depends(get_db)
 ):
     """
-    Eliminar módulo.
-    Aquí hago borrado lógico: activo = False.
-    Si quieres borrado físico, reemplaza por db.delete(modulo).
+    Eliminar módulo (borrado físico).
+    Elimina la fila completa de la tabla 'modulos'.
     """
     modulo = db.query(Modulo).filter(Modulo.id_modulo == modulo_id).first()
     if not modulo:
         raise HTTPException(status_code=404, detail="Módulo no encontrado")
 
-    modulo.activo = False
+    db.delete(modulo)
     db.commit()
 
-    return {"mensaje": "Módulo desactivado correctamente"}
+    return {"mensaje": "Módulo eliminado correctamente"}
+
