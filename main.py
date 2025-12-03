@@ -42,13 +42,21 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
+# CORS middleware - parse origins from env or use defaults
+cors_origin_env = os.getenv("CORS_ORIGIN", "*")
+if cors_origin_env == "*":
+    allowed_origins = ["*"]
+else:
+    # Support multiple origins separated by comma
+    allowed_origins = [origin.strip() for origin in cors_origin_env.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("CORS_ORIGIN", "*")],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Health check endpoint
