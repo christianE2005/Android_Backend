@@ -8,6 +8,7 @@ from database.db import get_db
 from models.user import Usuario
 from models.desafio_diario import DesafioDiario
 from models.usuario_modulo import UsuarioModulo
+from models.usuario_leccion import UsuarioLeccion
 from models.modulo import Modulo
 from middleware.auth_middleware import require_auth
 
@@ -40,10 +41,32 @@ async def get_home_data(
             detail="Usuario no encontrado"
         )
     
-    # Build days dict (placeholder - could be expanded with actual tracking)
+    # Calculate days of the current week where user had activity
     hoy = datetime.now().date()
-    dias_semana = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"]
-    dias_dict = {dia: False for dia in dias_semana}
+    # Get the Monday of the current week
+    inicio_semana = hoy - timedelta(days=hoy.weekday())
+    fin_semana = inicio_semana + timedelta(days=6)
+    
+    # Get all user lesson completions this week
+    actividad_semana = db.query(UsuarioLeccion).filter(
+        UsuarioLeccion.id_usuario == user_id,
+        UsuarioLeccion.completado == True,
+        UsuarioLeccion.actualizado_en >= datetime.combine(inicio_semana, datetime.min.time()),
+        UsuarioLeccion.actualizado_en <= datetime.combine(fin_semana, datetime.max.time())
+    ).all()
+    
+    # Map weekday numbers to Spanish names (Monday=0, Sunday=6)
+    dias_map = {0: "Lunes", 1: "Martes", 2: "Miercoles", 3: "Jueves", 4: "Viernes", 5: "Sabado", 6: "Domingo"}
+    dias_dict = {dia: False for dia in dias_map.values()}
+    
+    # Mark days where user had activity
+    dias_activos = set()
+    for actividad in actividad_semana:
+        if actividad.actualizado_en:
+            dia_num = actividad.actualizado_en.weekday()
+            dia_nombre = dias_map[dia_num]
+            dias_dict[dia_nombre] = True
+            dias_activos.add(actividad.actualizado_en.date())
     
     # Get desafio for this user (using id_desafio as user reference)
     desafio = db.query(DesafioDiario).filter(
@@ -65,10 +88,30 @@ async def get_home_data(
         db.commit()
         misiones = 0
     
-    # Calculate racha (streak) - simplified version
+    # Calculate racha (streak) - count consecutive days backwards from today
     racha = 0
-    if desafio and desafio.lecciones_completadas and desafio.lecciones_completadas > 0:
-        racha = 1  # At least 1 day if has progress
+    fecha_check = hoy
+    while True:
+        # Check if user had activity on this day
+        actividad_dia = db.query(UsuarioLeccion).filter(
+            UsuarioLeccion.id_usuario == user_id,
+            UsuarioLeccion.completado == True,
+            func.date(UsuarioLeccion.actualizado_en) == fecha_check
+        ).first()
+        
+        if actividad_dia:
+            racha += 1
+            fecha_check -= timedelta(days=1)
+        else:
+            # If no activity today but checking today, try yesterday
+            if fecha_check == hoy:
+                fecha_check -= timedelta(days=1)
+                continue
+            break
+        
+        # Safety limit to avoid infinite loop
+        if racha > 365:
+            break
     
     # Calculate overall progress (average of all modules)
     progreso_modulos = db.query(UsuarioModulo).filter(
@@ -100,6 +143,12 @@ async def get_home_data(
     progreso_modulo2 = int(float(modulo2.progreso_pct or 0)) if modulo2 else 0
     progreso_modulo3 = int(float(modulo3.progreso_pct or 0)) if modulo3 else 0
     
+    # Count total lessons completed by user
+    total_lecciones = db.query(UsuarioLeccion).filter(
+        UsuarioLeccion.id_usuario == user_id,
+        UsuarioLeccion.completado == True
+    ).count()
+    
     # Build response
     home_data = {
         "Usuario": user.to_dict(),
@@ -109,7 +158,8 @@ async def get_home_data(
         "Racha": racha,
         "ProgresoModulo1": progreso_modulo1,
         "ProgresoModulo2": progreso_modulo2,
-        "ProgresoModulo3": progreso_modulo3
+        "ProgresoModulo3": progreso_modulo3,
+        "Total": total_lecciones
     }
 
     return home_data
