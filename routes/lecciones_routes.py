@@ -37,13 +37,13 @@ class QuestionResponse(BaseModel):
 
 
 class AnswerRequest(BaseModel):
-    respuesta: str
+    calificacion: float  # Calificación de 0 a 100
 
 
 class AnswerResponse(BaseModel):
-    correcto: bool
     mensaje: str
     leccion_completada: bool
+    calificacion: float
 
 
 # ---- Nuevos schemas para CRUD de lecciones ----
@@ -183,8 +183,8 @@ async def submit_answer(
     db: Session = Depends(get_db)
 ):
     """
-    Submit an answer for the lesson quiz
-    Marks lesson as completed if correct
+    Submit the grade for a lesson quiz
+    Marks lesson as completed based on the grade
     """
     user_id = current_user["userId"]
 
@@ -193,12 +193,9 @@ async def submit_answer(
     if not leccion:
         raise HTTPException(status_code=404, detail="Leccion no encontrada")
 
-    # Check if video with this title exists in lesson
-    video = db.query(Video).filter(
-        Video.id_leccion == leccion_id,
-        Video.titulo == request.respuesta,
-        Video.activo == True
-    ).first()
+    # Validate calificacion range
+    if request.calificacion < 0 or request.calificacion > 100:
+        raise HTTPException(status_code=400, detail="La calificación debe estar entre 0 y 100")
 
     # Get or create user lesson progress
     usuario_leccion = db.query(UsuarioLeccion).filter(
@@ -218,28 +215,25 @@ async def submit_answer(
 
     # Increment attempts
     usuario_leccion.intentos = (usuario_leccion.intentos or 0) + 1
+    usuario_leccion.calificacion = request.calificacion
     usuario_leccion.actualizado_en = datetime.utcnow()
 
-    if video:
-        # Correct answer
-        usuario_leccion.completado = True
-        usuario_leccion.calificacion = 100
-        db.commit()
+    # Mark as completed if grade >= 70 (puedes cambiar este umbral)
+    leccion_completada = request.calificacion >= 100
+    usuario_leccion.completado = leccion_completada
 
-        return AnswerResponse(
-            correcto=True,
-            mensaje="¡Correcto! Has completado esta leccion.",
-            leccion_completada=True
-        )
+    db.commit()
+
+    if leccion_completada:
+        mensaje = f"¡Felicidades! Has completado esta lección con {request.calificacion}%"
     else:
-        # Wrong answer
-        db.commit()
+        mensaje = f"Obtuviste {request.calificacion}%. Necesitas al menos 70% para completar la lección."
 
-        return AnswerResponse(
-            correcto=False,
-            mensaje="Respuesta incorrecta. Intenta de nuevo.",
-            leccion_completada=False
-        )
+    return AnswerResponse(
+        mensaje=mensaje,
+        leccion_completada=leccion_completada,
+        calificacion=request.calificacion
+    )
 
 
 # ---------- NUEVOS ENDPOINTS CRUD PARA LECCIONES ----------
